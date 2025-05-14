@@ -14,6 +14,7 @@
 //#define M_PI 3.14159265358979323846
 
 static int update(void* userdata);
+void _fini(void) {}
 
 struct vec3d 
 {
@@ -59,12 +60,12 @@ struct mesh* createMeshWithTriangles(const struct triangle* triangles, size_t nu
 {
     struct mesh* m = malloc(sizeof(struct mesh));
     if (!m) {
-        fprintf(stderr, "Failed to allocate memory for mesh.\n");
+//        fprintf(stderr, "Failed to allocate memory for mesh.\n");
         exit(EXIT_FAILURE);
     }
     m->triangles = malloc(numTriangles * sizeof(struct triangle));
     if (!m->triangles) {
-        fprintf(stderr, "Failed to allocate memory for triangles.\n");
+//        fprintf(stderr, "Failed to allocate memory for triangles.\n");
         free(m);
         exit(EXIT_FAILURE);
     }
@@ -119,6 +120,7 @@ int eventHandler(PlaydateAPI* pd, PDSystemEvent event, uint32_t arg)
 		float fAspect = (float)pd->display->getHeight() / (float)pd->display->getWidth();
 		float fFovRad = 1.0f / tanf(fFov * 0.5f / 180.0f * M_PI);
 		
+		memset(&projection, 0, sizeof(projection));
 		projection.m[0][0] = fAspect * fFovRad;
         projection.m[1][1] = fFovRad;
         projection.m[2][2] = fFar / (fFar - fNear);
@@ -126,6 +128,7 @@ int eventHandler(PlaydateAPI* pd, PDSystemEvent event, uint32_t arg)
         projection.m[3][2] = (-fFar * fNear) / (fFar - fNear);
         projection.m[3][3] = 0.0f;
 
+		pd->display->setRefreshRate(50);
 		// Set the update callback
         pd->system->setUpdateCallback(update, pd);
     }
@@ -140,8 +143,8 @@ static int update(void* userdata)
 	pd->graphics->clear(kColorWhite);
 
 	struct mat4x4 matRotZ, matRotX;
-	float fTheta = 1.0f * pd->system->getElapsedTime();
-	float fTheta2 = 0.5f * fTheta;
+	float fTheta = 2.0f * pd->system->getElapsedTime();
+	float fTheta2 = 0.5f * pd->system->getElapsedTime();
 
 	// Rotation matrices
 	memset(&matRotZ, 0, sizeof(matRotZ));
@@ -170,8 +173,9 @@ static int update(void* userdata)
 		MultiplyMatrixVector(&tRotatedZ.p[0], &matRotZ, &t->p[0]);
 		MultiplyMatrixVector(&tRotatedZ.p[1], &matRotZ, &t->p[1]);
 		MultiplyMatrixVector(&tRotatedZ.p[2], &matRotZ, &t->p[2]);
+		
 		// Rotate around the X axis
-		MultiplyMatrixVector(&tRotatedXZ.p[0], &matRotX, &tRotatedZ.p[0]);
+ 		MultiplyMatrixVector(&tRotatedXZ.p[0], &matRotX, &tRotatedZ.p[0]);
 		MultiplyMatrixVector(&tRotatedXZ.p[1], &matRotX, &tRotatedZ.p[1]);
 		MultiplyMatrixVector(&tRotatedXZ.p[2], &matRotX, &tRotatedZ.p[2]);
 		
@@ -189,12 +193,12 @@ static int update(void* userdata)
 		tProjected.p[1].x += 1.0f; tProjected.p[1].y += 1.0f;
 		tProjected.p[2].x += 1.0f; tProjected.p[2].y += 1.0f;
 
-		tProjected.p[0].x *= 0.5f * pd->display->getWidth();
-		tProjected.p[0].y *= 0.5f * pd->display->getHeight();
-		tProjected.p[1].x *= 0.5f * pd->display->getWidth();
-		tProjected.p[1].y *= 0.5f * pd->display->getHeight();
-		tProjected.p[2].x *= 0.5f * pd->display->getWidth();
-		tProjected.p[2].y *= 0.5f * pd->display->getHeight();
+		tProjected.p[0].x *= 0.5f * (float)pd->display->getWidth();
+		tProjected.p[0].y *= 0.5f * (float)pd->display->getHeight();
+		tProjected.p[1].x *= 0.5f * (float)pd->display->getWidth();
+		tProjected.p[1].y *= 0.5f * (float)pd->display->getHeight();
+		tProjected.p[2].x *= 0.5f * (float)pd->display->getWidth();
+		tProjected.p[2].y *= 0.5f * (float)pd->display->getHeight();
 
 		pd->graphics->drawLine(tProjected.p[0].x, tProjected.p[0].y, tProjected.p[1].x, tProjected.p[1].y, 1, kColorBlack);
 		pd->graphics->drawLine(tProjected.p[1].x, tProjected.p[1].y, tProjected.p[2].x, tProjected.p[2].y, 1, kColorBlack);
